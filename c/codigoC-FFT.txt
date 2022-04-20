@@ -1,0 +1,128 @@
+#include <stdlib.h>
+#include <math.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include "inc/hw_memmap.h"
+#include "inc/hw_types.h"
+#include "driverlib/sysctl.h"
+#include "driverlib/gpio.h"
+#include "driverlib/sysctl.h"
+#include "driverlib/systick.h"
+
+
+   // variables globales
+    #define N 64
+    float xk[2][N];   //varible que almacenara la DFT
+    float xk2[2][N];  // variable que almacenara la FFT
+
+    float x[N];       // arreglo de tamaño N a transformar
+    int contador=0;
+
+    uint32_t ui32Value;
+    uint32_t ui32Value2;
+
+    //cabecera de función
+    void iniciar(void);
+    void DFT(void);
+    void FFT(void);
+    void FFT2(void);
+
+int main(void)
+{    SysCtlClockFreqSet((SYSCTL_XTAL_25MHZ | SYSCTL_OSC_MAIN | SYSCTL_USE_PLL | SYSCTL_CFG_VCO_480), 120000000);
+    iniciar();
+    SysTickPeriodSet(50000);
+    ui32Value2=SysTickPeriodGet(); //verifica el periodo de timer systick
+    SysTickIntEnable();
+    SysTickEnable();
+   // DFT();
+   // ui32Value = SysTickValueGet();    
+      FFT();
+   // ui32Value2 = SysTickValueGet();
+
+
+}
+
+void systickHandler()
+{
+    contador=contador+1;
+}
+void DFT()
+{
+    int i=0,k=0;                   // indices i=n, k=k
+    float angulo=0,z=0;            // variables auxiliares
+    float delta= 2*3.14159/N;	   // 2*pi/N			
+    for (k=0;k<N;k++)
+    {
+         for(i=0;i<N;i++)
+            {
+             angulo=(i)*delta*(k);  //aungulo de la exponencial
+
+             z=cosf(angulo);	    //parte real de la exponencial
+             z=z*x[i];		    //x(n)*Re|exponencial|		
+
+             xk[0][k]= xk[0][k]+z; //parte real de la transformada
+
+             z=sinf(-angulo);      //parte imaginaria de la exponencial
+             z=z*x[i];		   //x(n)*Im|exponencial|
+
+             xk[1][k]=xk[1][k]+z;  //parte imaginaria de la transformada
+            }
+    }
+}
+
+
+  // utilizamos la equivalencia cos(angulo)- sin(angulo) para la exponencial
+
+void FFT()
+{
+    int i=0,k=0;                          // indices i=n, k=k
+    float angulo1=0,angulo2=0,z=0,z1=0;   // variables auxiliares
+    float delta= 4*3.14159/N;             // 2*pi/(N/2)	
+    for (k=0;k<(N/2);k++)
+    {
+         for(i=0;i<(N/2);i++)
+            {
+             angulo1=(i)*delta*(k);		 // n*k*2*pi/(N/2)
+             angulo2=angulo1+(delta/2)*(k);      // n*k*2*pi/(N/2)  + 2*pi/N
+
+             z=cosf(angulo1);
+             z1=cosf(angulo2);
+
+             z=z*x[2*i];			    //posición par
+             z1=z1*x[2*i+1];			    //posición impar
+
+             xk2[0][k]=xk2[0][k]+z+z1;              //parte real transformada posición k
+             xk2[0][k+N/2]=xk2[0][k+N/2]+z-z1;	    //parte real transformada posición k + N/2
+
+
+
+             z=sinf(-angulo1);
+             z1=sinf(-angulo2);
+
+             z=z*x[2*i];                          //posición par
+             z1=z1*x[2*i+1];                      //posición impar
+	
+             xk2[1][k]=xk2[1][k]+z+z1;		//parte imaginaria transformada posición k
+             xk2[1][k+N/2]=xk2[1][k+N/2]+z-z1;  //parte imaginaria transformada posición k + N/2
+            }
+    }
+}
+
+void iniciar()
+{
+int i=0;
+for (i=0;i<N;i++){
+    xk[0][i]=0;
+    xk[1][i]=0;
+    xk2[0][i]=0;
+    xk2[1][i]=0;
+    xk3[0][i]=0;
+    xk3[1][i]=0;
+    x[i]=1;
+}
+for (i=0;i<N/2;i++){
+aux1[0][i]=0;
+aux1[1][i]=0;
+aux2[0][i]=0;
+aux2[1][i]=0;}
+}
