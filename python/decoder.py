@@ -10,6 +10,33 @@ from typing import List
 import csv
 
 
+
+#with open('encoder_signal_64.csv') as File:
+#    reader = csv.reader(File, delimiter=',', quotechar=',',
+#                        quoting=csv.QUOTE_MINIMAL)
+#    for row in reader:
+#        print(row)
+# 
+x=[]
+with open("encoder.txt") as File:
+    for row in File:
+        xsub=[]
+        row=row.split(",")
+        for string in row:
+            characters = "[()]n'\]"
+            for i in range(len(characters)):
+                string = string.replace(characters[i],"")
+                string = string.strip('\n')
+            string=complex(string)
+            xsub.append(string)
+        x.append(xsub)
+    
+
+
+
+ 
+
+
 # let us try to grasp this idea for a small example
 
 
@@ -48,23 +75,30 @@ def IFFT(x):
         y[k]=(yr[k]+1j*yi[k])
         y[N-1-k]=(yr[N-1-k]-1j*yi[N-1-k])
         
-   
     return y
 
-      
-   
+def IFFT_64(x):
+    n=len(x)
+    N=n*64
+    y=[0]*N
+    ymed=[]
+    k=0
+    for xsub in x:
+        ysub=IFFT(xsub)  
+        ymed.append(ysub)  
+    for i in range(n):
+        for j in range(64):
+            y[k]=ymed[i][j]
+            print(k,y[k])
+            k=k+1
+    return y
 
 
 
-#man = FFT(audio)
-#audio = np.random.random(1029)
 
 n = np.fft.fft(audio)
 ni= np.fft.ifft(n)
-man=IFFT(n)
-
-
-#print(man)
+man=IFFT_64(x)
 
 
 plt.subplot(2,3,1)
