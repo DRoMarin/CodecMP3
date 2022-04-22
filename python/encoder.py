@@ -1,8 +1,9 @@
+from decimal import ROUND_UP
 from tkinter import N
 import numpy as np
 import matplotlib.pyplot as plt
 import time
-from cmath import exp, pi, cos, sin
+from cmath import exp, log, pi, cos, sin
 import scipy.io.wavfile as waves
 from typing import List
 import csv
@@ -47,24 +48,33 @@ def FFT(x):
     return y
 
 def FFT_64(x):
-    n=len(x)
-    xnew=[]
-    xsub=[0]*64
-    ynew=[]
-    ynumpy=[]
-    for k in range(0,n,64):
-        for i in range(64):
-            if k+i<n:
-                xsub[i]=x[k+i]
-        ysub=FFT(xsub)
-        ysub1=np.fft.fft(xsub)
-        xnew.append(xsub)
-        xsub=[0]*64
-        ynew.append(ysub)
-        ynumpy.append(ysub1)
-    return ynew, ynumpy
+    audio_len=len(x)
+    samples_in=[0]*int(np.ceil(audio_len/64)*64)
+    #output_vector=[0]*int(np.ceil(audio_len/64))
+    #print(len(samples_in))
+    samples_in[0:audio_len]=x
+    #print(len(samples_in))
+    #print(samples_in)
+    bloque=[0]*64
+    fft_out=[0]*int(64/2+1)
+    for bloque_index in range(0,len(samples_in),64):
+        bloque=samples_in[bloque_index:bloque_index+64]
+        bloque_temp=np.fft.rfft(bloque)
+        print(len(bloque),len(bloque_temp))
+        if bloque_index==0:
+            fft_out=bloque_temp
+        else:
+            fft_out=np.concatenate((fft_out,bloque_temp))
+    fft_min=min(fft_out)
+    fft_max=max(fft_out)
+    print(fft_min)
+    print(fft_max)
+    print(len(fft_out))
+    return fft_out
 
-man,n = FFT_64(audio)
+man = FFT_64(audio)
+#print(man)
+#print(len(man))
 #print(audio)
 #print(man[388])
 #n = np.fft.fft(audio)
@@ -79,42 +89,12 @@ for element in man:
 textfile.close()
 
 
-
-plt.subplot(2,3,1)
-plt.title("FFT numpy")
-plt.plot(n[0])
-
-plt.subplot(2,3,4)
+test=np.sqrt(man)
 plt.title("FFT manual")
-plt.plot(np.real(man[0]))
-
-plt.subplot(2,3,2)
-plt.title("FFT numpy")
-plt.plot(n[194])
-
-plt.subplot(2,3,5)
-plt.title("FFT manual")
-plt.plot(np.real(man[194]))
-
-plt.subplot(2,3,3)
-plt.title("FFT numpy")
-plt.plot(n[388])
-
-plt.subplot(2,3,6)
-plt.title("FFT manual")
-plt.plot(np.real(man[388]))
-
-plt.show()
+plt.plot(np.real(test))
 
 
-
-
-
-
-
-
-
-
-
+print(max(test))
+print(min(test))
 
 
