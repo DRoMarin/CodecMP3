@@ -16,5 +16,6 @@ void bit_rev(complex * X, short EXP);
 
 void fft(complex * X, unsigned short EXP, complex * W, unsigned short SCALE);
 
+void ifft(complex * X, unsigned short EXP, complex * W, unsigned short SCALE);
 
 #endif /* FFT_H_ */

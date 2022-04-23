@@ -59,7 +59,7 @@ void fft(complex * X, unsigned short EXP, complex * W, unsigned short SCALE){
 	unsigned short LE;
 	unsigned short LE1;
 
-	short scale = 1;
+	unsigned short scale = SCALE;
 
 	bit_rev(X,EXP);
 
@@ -109,4 +109,29 @@ void fft(complex * X, unsigned short EXP, complex * W, unsigned short SCALE){
 		}
 	}
 }
+
+
+void ifft(complex * X, unsigned short EXP, complex * W, unsigned short SCALE){
+
+	unsigned short N;
+	unsigned short i;
+	complex temp;
+	N = 1<<EXP;
+	//compute FFT
+	fft(X, EXP, W, SCALE);
+	//reverse X[1] through X[N-1] and append
+
+	for(i = 1; i<N/2; i++){
+		temp 	=	X[i];
+		X[i] 	= 	X[N-i];
+		X[N-i] 	= 	temp;
+	}
+
+	//divide by N
+	for(i = 0; i < N; i++){
+		X[i].re = X[i].re>>EXP;
+	}
+
+}
+
 
