@@ -15,16 +15,21 @@ import csv
 #    reader = csv.reader(File, delimiter=',', quotechar=',',
 #                        quoting=csv.QUOTE_MINIMAL)
 #    for row in reader:
-#        print(row)
+#        if len(row)>0:
+#            x=[0]*len(row)
+#            x[0:len(row)]=row
 # 
-
+#print(x)
 with open("encoder.txt") as File:
     #total_rows = sum(1 for row in File)
-    x=[0]*12837
+    x=[0]*12448
     index=0
     for row in File:
         x[index]=complex(row)
         index=index+1
+
+
+
 
 
 # INGRESO
@@ -67,8 +72,9 @@ def IFFT(x):
 def IFFT_64(x):
     fft_size=len(x) 
     ifft_out=[0]*64
-    for bloque_index in range(0,fft_size,int(64/2+1)):
-        bloque_temp=x[bloque_index:bloque_index+int(64/2+1)]
+    x= np.multiply(x, 415)
+    for bloque_index in range(0,fft_size,int(64/2)):
+        bloque_temp=x[bloque_index:bloque_index+int(64/2)]
         output_temp=np.fft.irfft(bloque_temp)
         if bloque_index==0:
             ifft_out=output_temp
@@ -82,6 +88,10 @@ def IFFT_64(x):
 #n = np.fft.fft(x)
 #ni= np.fft.irfft(x)
 man=IFFT_64(x)
+
+with open('decoder_signal_64.csv', 'w') as f:
+    write = csv.writer(f)
+    write.writerow(man)
 
 plt.subplot(2,1,1)
 plt.title("Time signal")

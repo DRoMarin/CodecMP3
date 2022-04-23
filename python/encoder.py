@@ -56,32 +56,34 @@ def FFT_64(x):
     #print(len(samples_in))
     #print(samples_in)
     bloque=[0]*64
-    fft_out=[0]*int(64/2+1)
+    fft_out=[0]*int(64/2)
     for bloque_index in range(0,len(samples_in),64):
         bloque=samples_in[bloque_index:bloque_index+64]
         bloque_temp=np.fft.rfft(bloque)
-        print(len(bloque),len(bloque_temp))
+        print(len(bloque_temp[0:32]))
         if bloque_index==0:
-            fft_out=bloque_temp
+            fft_out=bloque_temp[0:32]
         else:
-            fft_out=np.concatenate((fft_out,bloque_temp))
-    fft_min=min(fft_out)
-    fft_max=max(fft_out)
-    print(fft_min)
-    print(fft_max)
-    print(len(fft_out))
+            fft_out=np.concatenate((fft_out,bloque_temp[0:32]))
+    fft_out=np.around(fft_out/415)
     return fft_out
 
 man = FFT_64(audio)
+print(max(man))
+print(min(man))
+
+plt.title("FFT")
+plt.plot(man)
+plt.show()
 #print(man)
 #print(len(man))
 #print(audio)
 #print(man[388])
 #n = np.fft.fft(audio)
 
-#with open('encoder_signal_64.csv', 'w') as f:
- #   write = csv.writer(f)
- #   write.writerow(man)
+with open('encoder_signal_64.csv', 'w') as f:
+    write = csv.writer(f)
+    write.writerow(man)
 
 textfile = open("encoder.txt", "w")
 for element in man:
@@ -89,12 +91,8 @@ for element in man:
 textfile.close()
 
 
-test=np.sqrt(man)
-plt.title("FFT manual")
-plt.plot(np.real(test))
 
 
-print(max(test))
-print(min(test))
+
 
 
