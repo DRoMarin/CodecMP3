@@ -17,27 +17,14 @@ import csv
 #    for row in reader:
 #        print(row)
 # 
-x=[]
+
 with open("encoder.txt") as File:
+    #total_rows = sum(1 for row in File)
+    x=[0]*12837
+    index=0
     for row in File:
-        xsub=[]
-        row=row.split(",")
-        for string in row:
-            characters = "[()]n'\]"
-            for i in range(len(characters)):
-                string = string.replace(characters[i],"")
-                string = string.strip('\n')
-            string=complex(string)
-            xsub.append(string)
-        x.append(xsub)
-    
-
-
-
- 
-
-
-# let us try to grasp this idea for a small example
+        x[index]=complex(row)
+        index=index+1
 
 
 # INGRESO
@@ -78,44 +65,30 @@ def IFFT(x):
     return y
 
 def IFFT_64(x):
-    n=len(x)
-    N=n*64
-    y=[0]*N
-    ymed=[]
-    k=0
-    for xsub in x:
-        ysub=IFFT(xsub)  
-        ymed.append(ysub)  
-    for i in range(n):
-        for j in range(64):
-            y[k]=ymed[i][j]
-            print(k,y[k])
-            k=k+1
-    return y
+    fft_size=len(x) 
+    ifft_out=[0]*64
+    for bloque_index in range(0,fft_size,int(64/2+1)):
+        bloque_temp=x[bloque_index:bloque_index+int(64/2+1)]
+        output_temp=np.fft.irfft(bloque_temp)
+        if bloque_index==0:
+            ifft_out=output_temp
+        else: 
+            ifft_out=np.concatenate((ifft_out,output_temp))     
+    return ifft_out
 
 
 
 
-n = np.fft.fft(audio)
-ni= np.fft.ifft(n)
+#n = np.fft.fft(x)
+#ni= np.fft.irfft(x)
 man=IFFT_64(x)
 
-
-plt.subplot(2,3,1)
+plt.subplot(2,1,1)
 plt.title("Time signal")
 plt.plot(audio)
 
-
-plt.subplot(2,3,4)
-plt.title("FFT numpy")
-plt.plot(n)
-
-plt.subplot(2,3,5)
-plt.title("IFFT numpy")
-plt.plot(ni)
-
-plt.subplot(2,3,6)
-plt.title("IFFT manual")
+plt.subplot(2,1,2)
+plt.title("IFFT")
 plt.plot(man)
 
 plt.show()
