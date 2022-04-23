@@ -80,7 +80,7 @@ def IFFT_64(x):
             ifft_out=output_temp
         else: 
             ifft_out=np.concatenate((ifft_out,output_temp))  
-    ifft_out=np.around(ifft_out)   
+    ifft_out=np.asarray(np.around(ifft_out), dtype = int)
     return ifft_out
 
 
