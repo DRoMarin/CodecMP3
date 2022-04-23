@@ -79,7 +79,8 @@ def IFFT_64(x):
         if bloque_index==0:
             ifft_out=output_temp
         else: 
-            ifft_out=np.concatenate((ifft_out,output_temp))     
+            ifft_out=np.concatenate((ifft_out,output_temp))  
+    ifft_out=np.around(ifft_out)   
     return ifft_out
 
 
