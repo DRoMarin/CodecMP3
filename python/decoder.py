@@ -77,7 +77,7 @@ def IFFT_64(x):
             pos_imag=pos_imag+1
     
     real=np.array(real)*820
-    imag=(np.array(imag)*8202)*1j 
+    imag=(np.array(imag)*820)*1j 
     x=real+imag
     
     for bloque_index in range(0,fft_size,int(64/2)):
