@@ -60,12 +60,17 @@ def FFT_64(x):
     for bloque_index in range(0,len(samples_in),64):
         bloque=samples_in[bloque_index:bloque_index+64]
         bloque_temp=np.fft.rfft(bloque)
-        print(len(bloque_temp[0:32]))
+        #print(len(bloque_temp[0:32]))
         if bloque_index==0:
             fft_out=bloque_temp[0:32]
         else:
             fft_out=np.concatenate((fft_out,bloque_temp[0:32]))
-    fft_out=np.around(fft_out/415)
+    #fft_out=np.around(fft_out)
+    real=np.asarray((np.real(fft_out))/812+63, dtype = int)
+    imag=np.asarray((np.imag(fft_out))/812+189, dtype = int)
+    print(min(real),max(real),len(real))
+    print(min(imag),max(imag),len(imag))
+    fft_out=np.real(np.concatenate((real,imag)))
     return fft_out
 
 man = FFT_64(audio)
@@ -81,9 +86,7 @@ plt.show()
 #print(man[388])
 #n = np.fft.fft(audio)
 
-with open('encoder_signal_64.csv', 'w') as f:
-    write = csv.writer(f)
-    write.writerow(man)
+
 
 textfile = open("encoder.txt", "w")
 for element in man:

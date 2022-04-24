@@ -22,14 +22,13 @@ import csv
 #print(x)
 with open("encoder.txt") as File:
     #total_rows = sum(1 for row in File)
-    x=[0]*12448
+    x=[0]*12448*2
     index=0
     for row in File:
-        x[index]=complex(row)
+        x[index]=int(row)
         index=index+1
 
-
-
+print(len(x))
 
 
 # INGRESO
@@ -70,9 +69,29 @@ def IFFT(x):
     return y
 
 def IFFT_64(x):
-    fft_size=len(x) 
+    fft_size=len(x)//2 
     ifft_out=[0]*64
-    x= np.multiply(x, 415)
+    real=[0]*(fft_size)
+    imag=[0]*(fft_size)
+    pos_real=0
+    pos_imag=0
+    for number in x:
+        if number<128:
+            real[pos_real]=number
+            pos_real=pos_real+1
+        else:
+            imag[pos_imag]=number
+            pos_imag=pos_imag+1
+    
+    print(pos_real,pos_imag)
+    print(max(real),min(real),len(real))
+    print(max(imag),min(imag),len(imag))
+    real=(np.array(real)-63)*812
+    imag=((np.array(imag)-189)*812)*1j 
+    print(max(real),min(real),len(real))
+    print(max(imag),min(imag),len(imag))
+    x=real+imag
+    print(len(x))
     for bloque_index in range(0,fft_size,int(64/2)):
         bloque_temp=x[bloque_index:bloque_index+int(64/2)]
         output_temp=np.fft.irfft(bloque_temp)
@@ -104,5 +123,9 @@ plt.plot(man)
 
 plt.show()
 
+textfile = open("decoder.txt", "w")
+for element in man:
+    textfile.write(str(element) + "\n")
+textfile.close()
 
 
