@@ -26,8 +26,6 @@ complex output_vector[N/2];
 
 clock_t start, end;
 
-
-
 void encoder(int16_t *samples, unsigned short size, uint16_t * output)
 {
 	//LOAD SAMPLES TO REAL PART OF INPUT
@@ -48,13 +46,19 @@ void encoder(int16_t *samples, unsigned short size, uint16_t * output)
 		}
 
 		//execute FFT block of samples
-		fft(values, EXP, twiddle, 1);
+		fft(values, EXP, twiddle, 0);
 
 		//report only the lower half of the result
 		for(i = 0; i < N/2; i++)
 		{
-			output[i+(idx_block>>1)] = (((uint16_t)((values[i].re/416) & 0x00ff)) << 8) | ((uint16_t)((values[i].im/416) & 0x00ff)); //quantization
+			if(values[i].re < 0) values[i].re = 0x0080 | ((-values[i].re/6) &0x00ff);
 
+			else if(values[i].re > 0) values[i].re = (values[i].re/6) & 0x00ff;
+
+			if(values[i].im < 0) values[i].im = 0x0080 | ((-values[i].im/6) &0x00ff);
+
+			else if(values[i].im > 0) values[i].im = (values[i].im/6) & 0x00ff;
+			output[i+(idx_block>>1)] = (((uint16_t)((values[i].re) & 0x00ff)) << 8) | ((uint16_t)((values[i].im) & 0x00ff)); //quantization
 		}
 
 	}
@@ -79,10 +83,29 @@ void decoder(uint16_t *coefficients, unsigned short size, int16_t * output)
 		for (i = 0; i<N/2; i++)
 		{
 			//printf("%d \n ", coefficients[i+idx_block]);
-			values[i].re = (((int16_t)(coefficients[i+idx_block]>>8))*416);
-			values[i].im = (((int16_t)(coefficients[i+idx_block] & 0x00ff))*416);
-		    values[(N-i-1)].re = (((int16_t)(coefficients[i+idx_block]>>8))*416);
-			values[(N-i-1)].im = -(((int16_t)(coefficients[i+idx_block] & 0x00ff))*416);
+			if((coefficients[i+idx_block] & 0x8000) == 0x8000)
+			{
+				values[i].re = -((int16_t)(coefficients[i+idx_block]>>8)&0x007f)*6;
+				values[N-i-1].re = -((int16_t)(coefficients[i+idx_block]>>8)&0x007f)*6;
+			}
+
+			else
+			{
+				values[i].re = ((int16_t)(coefficients[i+idx_block]>>8)&0x007f)*6;
+				values[N-i-1].re = ((int16_t)(coefficients[i+idx_block]>>8)&0x007f)*6;
+			}
+
+			if((coefficients[i+idx_block] & 0x0080) == 0x0080)
+			{
+				values[i].im = -((int16_t)(coefficients[i+idx_block])&0x007f)*6;
+				values[N-i-1].im = -((int16_t)(coefficients[i+idx_block])&0x7f)*6;
+			}
+			else
+			{
+				values[i].im = (((int16_t)(coefficients[i+idx_block])&0x7f)*6);
+				values[N-i-1].im = (((int16_t)(coefficients[i+idx_block])&0x7f)*6);
+			}
+
 		}
 		//execute FFT block of samples
 		ifft(values, EXP, twiddle, 1);
@@ -102,7 +125,7 @@ int main()
 	//int n;
 
 	//printf("aaaa");
-	FILE * stream = fopen("decoder.txt", "r");
+	FILE * stream = fopen("audio.txt", "r");
 	FILE * fp_stream_enc = fopen("fp_encoder.txt", "w+");
 	FILE * fp_stream_dec = fopen("fp_decoder.txt", "w+");
 
