@@ -29,7 +29,7 @@ void bit_rev(complex *X, short EXP)
 	unsigned short N = 1 << EXP;
 	unsigned short N2 = N>>1;
 	complex temp;
-	for (j = 0, i = 1; i < N; i++)
+	for (j = 0, i = 1; i < N-1; i++)
 	{
 		k = N2;
 		while(k<=j)
@@ -68,20 +68,20 @@ void fft(complex * X, unsigned short EXP, complex * W, unsigned short SCALE){
 		LE = 1<<L;
 		LE1 = LE>>1;
 		U.re = 0x7fff;
-		U.re = 0;
+		U.im = 0;
 
 		for (j = 0; j < LE1; j++)
 		{
 			for(i = j; i < N; i += LE)
 			{
-				id = i + LE;
+				id = i + LE1;
 				ltemp.re = lfp_mul(X[id].re,	U.re);
 				temp.re  = lfp_smas(ltemp.re, 	X[id].im, U.im)>>SFT16;
 				temp.re  = fp_add(temp.re, 		1)>>scale;
 				//temp.re = (X[id].re*U.re - X[id].im*U.im)*scale;
 
 				ltemp.im = lfp_mul(X[id].im, 	U.re);
-				temp.im  = lfp_smas(ltemp.im, 	X[id].re, U.im)>>SFT16;
+				temp.im  = lfp_smac(ltemp.im, 	X[id].re, U.im)>>SFT16;
 				temp.im  = fp_add(temp.im, 		1)>>scale;
 				//temp.im = (X[id].im*U.re + X[id].re*U.im)*scale;
 
@@ -118,18 +118,17 @@ void ifft(complex * X, unsigned short EXP, complex * W, unsigned short SCALE){
 	complex temp;
 	N = 1<<EXP;
 	//compute FFT
+
 	fft(X, EXP, W, SCALE);
-	//reverse X[1] through X[N-1] and append
+	//reverse X[1] through X[N-1] and append to X[0]
 
 	for(i = 1; i<N/2; i++){
 		temp 	=	X[i];
 		X[i] 	= 	X[N-i];
 		X[N-i] 	= 	temp;
 	}
-
-	//divide by N
 	for(i = 0; i < N; i++){
-		X[i].re = X[i].re>>EXP;
+		X[i].re = X[i].re>>EXP;//>>EXP;
 	}
 
 }
