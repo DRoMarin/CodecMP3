@@ -69,12 +69,11 @@ void fft(complex * X, unsigned short EXP, complex * W, unsigned short SCALE){
 		LE1 = LE>>1;
 		U.re = 0x7fff;
 		U.re = 0;
-
 		for (j = 0; j < LE1; j++)
 		{
 			for(i = j; i < N; i += LE)
 			{
-				id = i + LE;
+				id = i + LE1;
 				ltemp.re = lfp_mul(X[id].re,	U.re);
 				temp.re  = lfp_smas(ltemp.re, 	X[id].im, U.im)>>SFT16;
 				temp.re  = fp_add(temp.re, 		1)>>scale;
@@ -118,6 +117,7 @@ void ifft(complex * X, unsigned short EXP, complex * W, unsigned short SCALE){
 	complex temp;
 	N = 1<<EXP;
 	//compute FFT
+
 	fft(X, EXP, W, SCALE);
 	//reverse X[1] through X[N-1] and append
 
@@ -126,7 +126,6 @@ void ifft(complex * X, unsigned short EXP, complex * W, unsigned short SCALE){
 		X[i] 	= 	X[N-i];
 		X[N-i] 	= 	temp;
 	}
-
 	//divide by N
 	for(i = 0; i < N; i++){
 		X[i].re = X[i].re>>EXP;
