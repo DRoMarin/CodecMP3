@@ -1,4 +1,4 @@
-from decimal import ROUND_UP
+from decimal import ROUND_UP, InvalidContext
 from tkinter import N
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,19 +15,14 @@ import csv
 archivo = 'test_audio.wav'
 faudio, audio = waves.read(archivo)
 
-def decimal_to_binary(numero_decimal,real):
+def decimal_to_binary(numero_decimal):
     modulos = [0]*8 # la lista para guardar los módulos
     a=numero_decimal
     if numero_decimal>0:
         bit_signo=0
     else:
         bit_signo=1
-    if  real:
-        bit_complejo=0
-    else:
-        bit_complejo=1
-    modulos[0]=bit_complejo
-    modulos[1]=bit_signo
+    modulos[0]=bit_signo
     numero_decimal=abs(numero_decimal)
     pos=7
     num_bin=0
@@ -38,8 +33,13 @@ def decimal_to_binary(numero_decimal,real):
         modulos[pos]=modulo # guardamos el módulo calculado
         numero_decimal = cociente # el cociente pasa a ser el número de entrada
         pos=pos-1
+    return modulos
     
-   
+def complex_to_binary(real,imag):
+    num_bin=0
+    modulo_real=decimal_to_binary(real)
+    modulo_imag=decimal_to_binary(imag)
+    modulos=np.concatenate((modulo_real,modulo_imag))
     pos=0
     for digito in modulos[::-1]:
         num_bin=num_bin+digito*(2**pos)
@@ -65,19 +65,12 @@ def FFT_64(x):
         else:
             fft_out=np.concatenate((fft_out,bloque_temp[0:32]))
     #fft_out=np.around(fft_out)
-    real=np.asarray((np.real(fft_out))/820, dtype = int)
-    imag=np.asarray((np.imag(fft_out))/820, dtype = int)
-    print(len(real),max(real),min(real))
-    print(len(imag),max(imag),min(imag))
+    real=np.asarray((np.real(fft_out))/406, dtype = int)
+    imag=np.asarray((np.imag(fft_out))/406, dtype = int)
+    output_vec=[0]*len(fft_out)
     for index in range(len(real)):
-        real[index]=decimal_to_binary(real[index],True)
-        imag[index]=decimal_to_binary(imag[index],False)
-        
-        
-    print(len(real),max(real),min(real))
-    print(len(imag),max(imag),min(imag))
-    fft_out=np.real(np.concatenate((real,imag)))
-    return fft_out
+        output_vec[index]=complex_to_binary(real[index],imag[index])
+    return  output_vec
 
 man = FFT_64(audio)
 
