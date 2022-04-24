@@ -40,10 +40,12 @@ def complex_to_binary(real,imag):
     modulo_real=decimal_to_binary(real)
     modulo_imag=decimal_to_binary(imag)
     modulos=np.concatenate((modulo_real,modulo_imag))
+    
     pos=0
     for digito in modulos[::-1]:
         num_bin=num_bin+digito*(2**pos)
         pos=pos+1
+    #print(real,imag,modulo_real,modulo_imag,modulos,num_bin)
     return num_bin
 
 def FFT_64(x):
@@ -86,7 +88,7 @@ plt.show()
 
 
 
-textfile = open("encoder.txt", "w")
+textfile = open("encoder2.txt", "w")
 for element in man:
     textfile.write(str(element) + "\n")
 textfile.close()
