@@ -35,38 +35,31 @@ print(len(x))
 archivo = 'test_audio.wav'
 faudio, audio = waves.read(archivo)
 
-def IFFT(x):
-    N=len(x)
-    print(N)
-    angulo1=0
-    angulo2=0
-    z=0
-    z1=0
-    delta=4*pi/N
-    yr=[0]*N
-    yi=[0]*N
-    y=[0]*N
-    for k in range(0,N//2,1):
-        for i in range(N//2):
-            angulo1=i*delta*k  # n*k*2*pi/(N/2)
-            angulo2=angulo1+(delta/2)*k #n*k*2*pi/(N/2)  + 2*pi/N
-            z=cos(angulo1)
-            z1=cos(angulo2)
-            z=z*x[2*i] #posición par
-            z1=z1*x[2*i+1] #posición impar
-            yr[k]=yr[k]+z+z1 #parte real transformada posición k
-            yr[N-1-k]= yr[N-1-k]+z+z1 #parte real transformada posición k + N/2
-            z=sin(angulo1)
-            z1=sin(angulo2)
-            z=z*x[2*i] #posición par
-            z1=z1*x[2*i+1] #posición impar
-            yi[k]=yi[k]+z+z1 #parte imaginaria transformada posición k
-            yi[N-1-k]= yi[N-1-k]+z+z1 #parte imaginaria transformada posición k + N/2
-        print(k,i)
-        y[k]=(yr[k]+1j*yi[k])
-        y[N-1-k]=(yr[N-1-k]-1j*yi[N-1-k])
+def binary_to_decimal(numero_decimal):
+    modulos = [0]*8 # la lista para guardar los módulos
+    pos=7
+    num_bin=0
+    while numero_decimal != 0: # mientras el número de entrada sea diferente de cero
+    # paso 1: dividimos entre 2
+        modulo = numero_decimal % 2
+        cociente = numero_decimal // 2
+        modulos[pos]=modulo # guardamos el módulo calculado
+        numero_decimal = cociente # el cociente pasa a ser el número de entrada
+        pos=pos-1
+    bit_signo=modulos[1]
+    numero=modulos[2:8]
+    if bit_signo==0:
+        factor=1
+    else:
+        factor=-1
+    pos=0
+    for digito in numero[::-1]:
+        num_bin=num_bin+digito*(2**pos)
+        pos=pos+1
+    num_bin=factor*num_bin
+    return num_bin
         
-    return y
+ 
 
 def IFFT_64(x):
     fft_size=len(x)//2 
@@ -76,22 +69,17 @@ def IFFT_64(x):
     pos_real=0
     pos_imag=0
     for number in x:
-        if number<128:
-            real[pos_real]=number
+        if number<=128:
+            real[pos_real]=binary_to_decimal(number)
             pos_real=pos_real+1
         else:
-            imag[pos_imag]=number
+            imag[pos_imag]=binary_to_decimal(number)
             pos_imag=pos_imag+1
     
-    print(pos_real,pos_imag)
-    print(max(real),min(real),len(real))
-    print(max(imag),min(imag),len(imag))
-    real=(np.array(real)-63)*812
-    imag=((np.array(imag)-189)*812)*1j 
-    print(max(real),min(real),len(real))
-    print(max(imag),min(imag),len(imag))
+    real=np.array(real)*820
+    imag=(np.array(imag)*820)*1j 
     x=real+imag
-    print(len(x))
+    
     for bloque_index in range(0,fft_size,int(64/2)):
         bloque_temp=x[bloque_index:bloque_index+int(64/2)]
         output_temp=np.fft.irfft(bloque_temp)

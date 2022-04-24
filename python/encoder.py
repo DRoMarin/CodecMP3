@@ -15,37 +15,36 @@ import csv
 archivo = 'test_audio.wav'
 faudio, audio = waves.read(archivo)
 
-def FFT(x):
-    N=len(x)
-    #print(N)
-    angulo1=0
-    angulo2=0
-    z=0
-    z1=0
-    delta=4*pi/N
-    yr=[0]*N
-    yi=[0]*N
-    y=[0]*N
-    for k in range(0,N//2,1):
-        for i in range(N//2):
-            angulo1=i*delta*k  # n*k*2*pi/(N/2)
-            angulo2=angulo1+(delta/2)*k #n*k*2*pi/(N/2)  + 2*pi/N
-            z=cos(angulo1)
-            z1=cos(angulo2)
-            z=z*x[2*i] #posición par
-            z1=z1*x[2*i+1] #posición impar
-            yr[k]=yr[k]+z+z1 #parte real transformada posición k
-            yr[k+N//2]= yr[k+N//2]+z-z1 #parte real transformada posición k + N/2
-            z=sin(-angulo1)
-            z1=sin(-angulo2)
-            z=z*x[2*i] #posición par
-            z1=z1*x[2*i+1] #posición impar
-            yi[k]=yi[k]+z+z1 #parte imaginaria transformada posición k
-            yi[k+N//2]= yi[k+N//2]+z-z1 #parte imaginaria transformada posición k + N/2
-        y[k]=yr[k]+1j*yi[k]
-        y[k+N//2]=yr[k+N//2]+1j*yi[k+N//2]
-        #print(k,i)
-    return y
+def decimal_to_binary(numero_decimal,real):
+    modulos = [0]*8 # la lista para guardar los módulos
+    a=numero_decimal
+    if numero_decimal>0:
+        bit_signo=0
+    else:
+        bit_signo=1
+    if  real:
+        bit_complejo=0
+    else:
+        bit_complejo=1
+    modulos[0]=bit_complejo
+    modulos[1]=bit_signo
+    numero_decimal=abs(numero_decimal)
+    pos=7
+    num_bin=0
+    while numero_decimal != 0: # mientras el número de entrada sea diferente de cero
+    # paso 1: dividimos entre 2
+        modulo = numero_decimal % 2
+        cociente = numero_decimal // 2
+        modulos[pos]=modulo # guardamos el módulo calculado
+        numero_decimal = cociente # el cociente pasa a ser el número de entrada
+        pos=pos-1
+    
+   
+    pos=0
+    for digito in modulos[::-1]:
+        num_bin=num_bin+digito*(2**pos)
+        pos=pos+1
+    return num_bin
 
 def FFT_64(x):
     audio_len=len(x)
@@ -66,16 +65,22 @@ def FFT_64(x):
         else:
             fft_out=np.concatenate((fft_out,bloque_temp[0:32]))
     #fft_out=np.around(fft_out)
-    real=np.asarray((np.real(fft_out))/812+63, dtype = int)
-    imag=np.asarray((np.imag(fft_out))/812+189, dtype = int)
-    print(min(real),max(real),len(real))
-    print(min(imag),max(imag),len(imag))
+    real=np.asarray((np.real(fft_out))/820, dtype = int)
+    imag=np.asarray((np.imag(fft_out))/820, dtype = int)
+    print(len(real),max(real),min(real))
+    print(len(imag),max(imag),min(imag))
+    for index in range(len(real)):
+        real[index]=decimal_to_binary(real[index],True)
+        imag[index]=decimal_to_binary(imag[index],False)
+        
+        
+    print(len(real),max(real),min(real))
+    print(len(imag),max(imag),min(imag))
     fft_out=np.real(np.concatenate((real,imag)))
     return fft_out
 
 man = FFT_64(audio)
-print(max(man))
-print(min(man))
+
 
 plt.title("FFT")
 plt.plot(man)
