@@ -72,7 +72,7 @@ def FFT_64(x):
         else:
             fft_out=np.concatenate((fft_out,bloque_temp[0:32]))
          
-    #fft_out = np.around(fft_out/416,0)
+    fft_out = np.around(fft_out/416,0)
     #fft_hex = [0]*len(fft_out)    
     #for index in range(0,len(fft_out)):
     	
@@ -122,7 +122,8 @@ def make_dictionary(tree):
             search_stack.append(elm[2][0]+(prefix+"1",))
             continue
         else:
-            res[elm[2]] = str(int(elm[-1],2))
+            res[elm[2]] =str(int('1'.join(elm[-1]),2))
+            #print(a)
         pass
     return res
 
@@ -131,6 +132,7 @@ def compress(dic,content):
     for ch in content:
         code = dic[ch]
         compressed.append(code)
+        #print(ch,code)
     return compressed
 
 def store(compressed,dic,outfile):
@@ -152,13 +154,15 @@ cont=' '.join([str(item) for item in fft])
 probs = get_probabilities(cont)
 # Construimos el árbol de parseo! : )
 tree = make_tree(probs)
+
 # Construimos el diccionario para codificar
 dic = make_dictionary(tree)
+print(dic)
 # Codificamos el contenido del archivo
 compressed = compress(dic,cont)
-print(compressed)
+#print(compressed)
 # Guardamos todo en disco!
 store(compressed,dic,"encoder_prueba")
 
 print("Archivo comprimido!")
-print(fft)
+#print(dic)
