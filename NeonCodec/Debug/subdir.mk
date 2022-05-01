@@ -5,17 +5,14 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../FFT.c \
-../fixedPoint.c \
 ../main.c 
 
 OBJS += \
 ./FFT.o \
-./fixedPoint.o \
 ./main.o 
 
 C_DEPS += \
 ./FFT.d \
-./fixedPoint.d \
 ./main.d 
 
 
@@ -23,7 +20,7 @@ C_DEPS += \
 %.o: ../%.c
 	@echo 'Building file: $<'
 	@echo 'Invoking: Cross GCC Compiler'
-	arm-linux-gnueabihf-gcc -I"/home/daro/eclipse-workspace/NeonCodec/NE10" -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+	arm-linux-gnueabihf-gcc -I"/home/daro/eclipse-workspace/NeonCodec/NE10" -I"/home/daro/eclipse-workspace/NeonCodec/libfixmath" -O3 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

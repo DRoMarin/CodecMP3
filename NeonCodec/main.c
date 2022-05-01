@@ -8,175 +8,149 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
+#include <inttypes.h>
+#include <math.h>
+
+#define DR_WAV_IMPLEMENTATION
+#include "dr_wav.h"
+#include "fixmath.h"
+
 #include "types.h"
 #include "FFT.h"
-#include "fixedPoint.h"
-#include <string.h>
-#include <inttypes.h>
-#include <time.h>
-#include <NE10.h>
-
-//uint16_t EXP = 4;
 
 #define N 64
 #define EXP 6
-#define length 24960
-complex twiddle[EXP];
-complex output_vector[N/2];
-
+#define TUNING 19
 clock_t start, end;
 
+#include <NE10.h>
 
-#define ARRAY_GUARD_LEN      4
 
-
-void encoder(int16_t *samples, unsigned short size, uint16_t * output)
+void encoder(int16_t *samples, unsigned short size, uint16_t * output, uint64_t nSamples)
 {
 	//LOAD SAMPLES TO REAL PART OF INPUT
-	unsigned short i;
-	unsigned short idx_block;
-	//complex values[N];
-	ne10_fft_cpx_int16_t* src = (ne10_fft_cpx_int16_t*) NE10_MALLOC(N * sizeof(ne10_fft_cpx_int16_t)); // A source array of input data
-	ne10_fft_cpx_int16_t* dst = (ne10_fft_cpx_int16_t*) NE10_MALLOC(N * sizeof(ne10_fft_cpx_int16_t));
-	ne10_fft_cfg_int16_t cfg;
+	uint16_t block_idx = 0;
+	uint16_t sample_idx = 0;
 
+	int32_t maxval = 0;
+
+
+	ne10_fft_cpx_int32_t* src = (ne10_fft_cpx_int32_t*) NE10_MALLOC(N * sizeof(ne10_fft_cpx_int32_t)); // A source array of input data
+	ne10_fft_cpx_int32_t* dst = (ne10_fft_cpx_int32_t*) NE10_MALLOC(N * sizeof(ne10_fft_cpx_int32_t));
+	ne10_fft_cfg_int32_t cfg;
+	printf("aaaaaaaaa \n");
 	start = clock();
     //initialize FFT
-	//fft_init(twiddle, EXP);
 
-	for(idx_block = 0; idx_block < length; idx_block += N)
+	cfg = ne10_fft_alloc_c2c_int32_neon(N);
+
+	for(block_idx = 0; block_idx < nSamples; block_idx+=N)
 	{
-		for (i = 0; i<N; i++)
+		for(sample_idx = 0; sample_idx < size; sample_idx++)
 		{
-			//values[i].re = samples[idx_block + i];
-			src[i].r =(ne10_int16_t) samples[idx_block + i];
-			src[i].i =(ne10_int16_t) 0x0000;
+			src[sample_idx].r = (samples[block_idx + sample_idx]<<16);
+			src[sample_idx].i = 0;
 		}
 
 		//execute FFT block of samples
-		cfg = ne10_fft_alloc_c2c_int16 (N);
 
-		ne10_fft_c2c_1d_int16(dst,src,cfg,0,0);
+		ne10_fft_c2c_1d_int32_neon(dst,src,cfg,0,1);
 
 		//report only the lower half of the result
-		for(i = 0; i < N/2; i++)
-				{
-					if(dst[i].r < 0) dst[i].r = 0x0080 | ((-dst[i].r/6) &0x00ff);
-
-					else if(dst[i].r > 0) dst[i].r = (dst[i].r/6) & 0x00ff;
-
-					if(dst[i].i < 0) dst[i].i = 0x0080 | ((-dst[i].i/6) &0x00ff);
-
-					else if(dst[i].i > 0) dst[i].i = (dst[i].i/6) & 0x00ff;
-					output[i+(idx_block>>1)] = (((uint16_t)((dst[i].r) & 0x00ff)) << 8) | ((uint16_t)((dst[i].i) & 0x00ff)); //quantization
-				}
+		for(sample_idx = 0; sample_idx < size/2; sample_idx++)
+		{
+			uint16_t val1 = 0x00ff&(((dst[sample_idx].r+32768)>>TUNING)+128);
+			uint16_t val2 = 0x00ff&(((dst[sample_idx].i+32768)>>TUNING)+128);
+			output[block_idx/2 + sample_idx] = ((val1)<<8) | (val2);
+		}
 
 	}
 	    //report only the lower half of the result
+	printf("max %"PRId32 "\n",maxval>>TUNING);
 	end = clock();
 	printf("TIME ENCODING: %f\n", (double)(end-start)/CLOCKS_PER_SEC);
 }
 
-void decoder(uint16_t *coefficients, unsigned short size, int16_t * output)
+void decoder(uint16_t *coefficients, unsigned short size, int16_t * output,  uint64_t nSamples)
 {
 	//Mirror result of RFFT
 
-	unsigned short i,idx_block;
-	ne10_fft_cpx_int16_t* src = (ne10_fft_cpx_int16_t*) NE10_MALLOC(N * sizeof(ne10_fft_cpx_int16_t)); // A source array of input data
-	ne10_fft_cpx_int16_t* dst = (ne10_fft_cpx_int16_t*) NE10_MALLOC(N * sizeof(ne10_fft_cpx_int16_t));
-	ne10_fft_cfg_int16_t cfg;
+	uint16_t block_idx = 0;
+	uint16_t sample_idx = 0;
 
+	ne10_fft_cpx_int32_t* src = (ne10_fft_cpx_int32_t*) NE10_MALLOC(N * sizeof(ne10_fft_cpx_int32_t)); // A source array of input data
+	ne10_fft_cpx_int32_t* dst = (ne10_fft_cpx_int32_t*) NE10_MALLOC(N * sizeof(ne10_fft_cpx_int32_t));
+	ne10_fft_cfg_int32_t cfg;
+
+	cfg = ne10_fft_alloc_c2c_int32_neon(N);
     //initialize FFT
 	start = clock();
 
-	for (idx_block = 0; idx_block<length/2; idx_block+=(N/2))
-	{
-		for (i = 0; i<N/2; i++)
-				{
-					//printf("%d \n ", coefficients[i+idx_block]);
-					if((coefficients[i+idx_block] & 0x8000) == 0x8000)
-					{
-						src[i].r = -((int16_t)(coefficients[i+idx_block]>>8)&0x007f)*6;
-						src[N-i-1].r = -((int16_t)(coefficients[i+idx_block]>>8)&0x007f)*6;
-					}
+		for(block_idx = 0; block_idx < nSamples/2; block_idx+=N/2)
+		{
+			src[0].r = ((int32_t)((0xff00&coefficients[0])>>8)-128)<<TUNING;
+			src[0].i = ((int32_t)((0x00ff&coefficients[0])-128))<<TUNING;
 
-					else
-					{
-						src[i].r = ((int16_t)(coefficients[i+idx_block]>>8)&0x007f)*6;
-						src[N-i-1].r = ((int16_t)(coefficients[i+idx_block]>>8)&0x007f)*6;
-					}
+			src[N/2].r = 0;
+			src[N/2].i = 0;
 
-					if((coefficients[i+idx_block] & 0x0080) == 0x0080)
-					{
-						src[i].i = -((int16_t)(coefficients[i+idx_block])&0x007f)*6;
-						src[N-i-1].i = -((int16_t)(coefficients[i+idx_block])&0x7f)*6;
-					}
-					else
-					{
-						src[i].i = (((int16_t)(coefficients[i+idx_block])&0x7f)*6);
-						src[N-i-1].i = (((int16_t)(coefficients[i+idx_block])&0x7f)*6);
-					}
+			for(sample_idx = 1; sample_idx < size/2; sample_idx++)
+			{
+				src[sample_idx].r = ((int32_t)((0xff00&coefficients[block_idx + sample_idx])>>8)-128)<<TUNING;
+				src[sample_idx].i = ((int32_t)((0x00ff&coefficients[block_idx + sample_idx])-128))<<TUNING;
 
-				}
+				src[N-sample_idx].r = ((int32_t)((0xff00&coefficients[block_idx + sample_idx])>>8)-128)<<TUNING;
+				src[N-sample_idx].i = -((int32_t)((0x00ff&coefficients[block_idx + sample_idx])-128))<<TUNING;
+			}
+
 		//execute FFT block of samples
 
-		cfg = ne10_fft_alloc_c2c_int16 (N);
-		ne10_fft_c2c_1d_int16(dst,src,cfg,1,0);
+			ne10_fft_c2c_1d_int32_neon(dst,src,cfg,1,0);
 
 		//ifft(values, EXP, twiddle, 1);
 
-		for (i = 0; i<N; i++)
-		{
-			output[i+(idx_block*2)] = dst[i].r;
+			for(sample_idx = 0; sample_idx < size; sample_idx++)
+			{
+				output[block_idx*2 + sample_idx] = 0xffff&(dst[sample_idx].r+32768)>>16;
+			}
 		}
-	}
 	end = clock();
 	printf("TIME DECODING: %f\n", (double)(end-start)/CLOCKS_PER_SEC);
 }
 
-
 int main()
 {
-	//int n;
 
-	//printf("aaaa");
-	FILE * stream = fopen("decoder2.txt", "r");
-	FILE * fp_stream_enc = fopen("neon_encoder.txt", "w+");
-	FILE * fp_stream_dec = fopen("neon_decoder.txt", "w+");
+	drwav wav;
+	drwav wav_out;
 
-	int16_t samples[length];
-	int16_t final[length];
-	uint16_t out[length/2] = {0};
-	//while()
+	drwav_init_file(&wav, "test_audio.wav", NULL);
+	uint64_t samplesLength = wav.totalPCMFrameCount;
+	uint64_t len = (uint64_t)(ceil((double)samplesLength/64)*64);
+	int16_t* pSampleData = (int16_t*)malloc((size_t)len * wav.channels * sizeof(int16_t));
+	uint16_t* enc_output = (uint16_t*)malloc((size_t)(len/2) * wav.channels * sizeof(uint16_t));
+	int16_t* dec_output = (int16_t*)malloc((size_t)len * wav.channels * sizeof(int16_t));
 
-	ne10_init();
+	drwav_read_pcm_frames_s16(&wav, wav.totalPCMFrameCount, pSampleData);
 
-	for(int i = 0; i<length;i++)
-	{
-		fscanf(stream, "%" SCNd16, &samples[i]);
-	}
-
-	encoder(samples, 64, out);
-
-	for(int i = 0; i<length/2;i++)
-	{
-		fprintf(fp_stream_enc,"%u\n", out[i]);
-	}
-
-	fclose(fp_stream_enc);
-
-	decoder(out, 64, final);
-
-	for(int i = 0; i<length;i++)
-	{
-		fprintf(fp_stream_dec,"%d\n", final[i]);
-	}
-
-	fclose(fp_stream_dec);
-
-	fclose(stream);
+	drwav_uninit(&wav);
 
 
+	encoder(pSampleData, N, enc_output, len);
+
+	decoder(enc_output, N, dec_output, len);
+
+	drwav_data_format format;
+	format.container = drwav_container_riff;
+	format.format = DR_WAVE_FORMAT_PCM;
+	format.channels = 1;
+	format.sampleRate = 8000;
+	format.bitsPerSample = 16;
+
+	drwav_init_file_write(&wav_out,"neon_wav_out.wav",&format,NULL);
+
+	drwav_write_pcm_frames(&wav_out,samplesLength,dec_output);
 
 	return 0;
 }

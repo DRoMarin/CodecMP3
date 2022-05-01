@@ -10,12 +10,12 @@
 
 #include "types.h"
 
-void fft_init(complex * W, short EXP);
+void fft_init(lcomplex * W, short EXP);
 
-void bit_rev(complex * X, short EXP);
+void bit_rev(lcomplex * X, short EXP);
 
-void fft(complex * X, unsigned short EXP, complex * W, unsigned short SCALE);
+void fft(lcomplex * X, unsigned short EXP, lcomplex * W, unsigned short SCALE);
 
-void ifft(complex * X, unsigned short EXP, complex * W, unsigned short SCALE);
+void ifft(lcomplex * X, unsigned short EXP, lcomplex * W, unsigned short SCALE);
 
 #endif /* FFT_H_ */
