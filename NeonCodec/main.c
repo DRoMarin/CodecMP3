@@ -17,7 +17,6 @@
 #include "fixmath.h"
 
 #include "types.h"
-#include "FFT.h"
 
 #define N 64
 #define EXP 6
@@ -33,13 +32,10 @@ void encoder(int16_t *samples, unsigned short size, uint16_t * output, uint64_t 
 	uint16_t block_idx = 0;
 	uint16_t sample_idx = 0;
 
-	int32_t maxval = 0;
-
-
 	ne10_fft_cpx_int32_t* src = (ne10_fft_cpx_int32_t*) NE10_MALLOC(N * sizeof(ne10_fft_cpx_int32_t)); // A source array of input data
 	ne10_fft_cpx_int32_t* dst = (ne10_fft_cpx_int32_t*) NE10_MALLOC(N * sizeof(ne10_fft_cpx_int32_t));
 	ne10_fft_cfg_int32_t cfg;
-	printf("aaaaaaaaa \n");
+
 	start = clock();
     //initialize FFT
 
@@ -67,7 +63,7 @@ void encoder(int16_t *samples, unsigned short size, uint16_t * output, uint64_t 
 
 	}
 	    //report only the lower half of the result
-	printf("max %"PRId32 "\n",maxval>>TUNING);
+	//printf("max %"PRId32 "\n",maxval>>TUNING);
 	end = clock();
 	printf("TIME ENCODING: %f\n", (double)(end-start)/CLOCKS_PER_SEC);
 }

@@ -16,9 +16,8 @@
 #define DR_WAV_IMPLEMENTATION
 #include "dr_wav.h"
 #include "fixmath.h"
-
-#include "types.h"
 #include "FFT.h"
+#include "types.h"
 
 #define N 64
 #define EXP 6
@@ -27,8 +26,8 @@ clock_t start, end;
 
 void encoder(int16_t *samples, unsigned short size, uint16_t * output, uint64_t nSamples)
 {
-	uint16_t block_idx = 0;
-	uint16_t sample_idx = 0;
+	uint64_t block_idx = 0;
+	uint64_t sample_idx = 0;
 	lcomplex twiddle[EXP];
 	lcomplex temp_output[size];
 
@@ -69,7 +68,6 @@ void decoder(uint16_t *coefficients, unsigned short size, int16_t * output, uint
 	lcomplex temp_output[size];
 
     //initialize FFT
-	start = clock();
 
 	fft_init(twiddle, EXP);
 
