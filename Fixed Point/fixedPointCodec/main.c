@@ -5,160 +5,141 @@
  *      Author: daro
  */
 
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
+#include <inttypes.h>
+#include <math.h>
+
+#define DR_WAV_IMPLEMENTATION
+#include "dr_wav.h"
+#include "fixmath.h"
+
 #include "types.h"
 #include "FFT.h"
-#include "fixedPoint.h"
-#include <string.h>
-#include <inttypes.h>
-#include <time.h>
-
-
-//uint16_t EXP = 4;
 
 #define N 64
 #define EXP 6
-#define length 24960
-complex twiddle[EXP];
-complex output_vector[N/2];
-
+#define TUNING 19
 clock_t start, end;
 
-void encoder(int16_t *samples, unsigned short size, uint16_t * output)
+void encoder(int16_t *samples, unsigned short size, uint16_t * output, uint64_t nSamples)
 {
-	//LOAD SAMPLES TO REAL PART OF INPUT
-	unsigned short i;
-	unsigned short idx_block;
-	complex values[N];
+	uint16_t block_idx = 0;
+	uint16_t sample_idx = 0;
+	lcomplex twiddle[EXP];
+	lcomplex temp_output[size];
 
-	start = clock();
-    //initialize FFT
 	fft_init(twiddle, EXP);
 
-	for(idx_block = 0; idx_block < length; idx_block += N)
+	start = clock();
+
+	for(block_idx = 0; block_idx < nSamples; block_idx+=N)
 	{
-		for (i = 0; i<N; i++)
+		for(sample_idx = 0; sample_idx < size; sample_idx++)
 		{
-			values[i].re = samples[idx_block + i];
-			values[i].im = 0x0000;
+			temp_output[sample_idx].re = (samples[block_idx + sample_idx]<<16);
+			temp_output[sample_idx].im = 0;
 		}
 
-		//execute FFT block of samples
-		fft(values, EXP, twiddle, 0);
+		fft(temp_output, EXP, twiddle, 1);
 
-		//report only the lower half of the result
-		for(i = 0; i < N/2; i++)
+		for(sample_idx = 0; sample_idx < size/2; sample_idx++)
 		{
-			if(values[i].re < 0) values[i].re = 0x0080 | ((-values[i].re/6) &0x00ff);
-
-			else if(values[i].re > 0) values[i].re = (values[i].re/6) & 0x00ff;
-
-			if(values[i].im < 0) values[i].im = 0x0080 | ((-values[i].im/6) &0x00ff);
-
-			else if(values[i].im > 0) values[i].im = (values[i].im/6) & 0x00ff;
-			output[i+(idx_block>>1)] = (((uint16_t)((values[i].re) & 0x00ff)) << 8) | ((uint16_t)((values[i].im) & 0x00ff)); //quantization
+			uint16_t val1 = 0x00ff&(((temp_output[sample_idx].re+32768)>>TUNING)+128);
+			uint16_t val2 = 0x00ff&(((temp_output[sample_idx].im+32768)>>TUNING)+128);
+			output[block_idx/2 + sample_idx] = ((val1)<<8) | (val2);
 		}
-
 	}
-	    //report only the lower half of the result
+
 	end = clock();
+
 	printf("TIME ENCODING: %f\n", (double)(end-start)/CLOCKS_PER_SEC);
 }
 
-void decoder(uint16_t *coefficients, unsigned short size, int16_t * output)
-{
-	//Mirror result of RFFT
 
-	unsigned short i,idx_block;
-	complex values[N] = {0};
+
+void decoder(uint16_t *coefficients, unsigned short size, int16_t * output, uint64_t nSamples)
+{
+	uint16_t block_idx = 0;
+	uint16_t sample_idx = 0;
+	lcomplex twiddle[EXP];
+	lcomplex temp_output[size];
 
     //initialize FFT
 	start = clock();
+
 	fft_init(twiddle, EXP);
 
-	for (idx_block = 0; idx_block<length/2; idx_block+=(N/2))
+	start = clock();
+
+	for(block_idx = 0; block_idx < nSamples/2; block_idx+=N/2)
 	{
-		for (i = 0; i<N/2; i++)
+		temp_output[0].re = ((int32_t)((0xff00&coefficients[0])>>8)-128)<<TUNING;
+		temp_output[0].im = ((int32_t)((0x00ff&coefficients[0])-128))<<TUNING;
+
+		temp_output[N/2].re = 0;
+		temp_output[N/2].im = 0;
+
+		for(sample_idx = 1; sample_idx < size/2; sample_idx++)
 		{
-			//printf("%d \n ", coefficients[i+idx_block]);
-			if((coefficients[i+idx_block] & 0x8000) == 0x8000)
-			{
-				values[i].re = -((int16_t)(coefficients[i+idx_block]>>8)&0x007f)*6;
-				values[N-i-1].re = -((int16_t)(coefficients[i+idx_block]>>8)&0x007f)*6;
-			}
+			temp_output[sample_idx].re = ((int32_t)((0xff00&coefficients[block_idx + sample_idx])>>8)-128)<<TUNING;
+			temp_output[sample_idx].im = ((int32_t)((0x00ff&coefficients[block_idx + sample_idx])-128))<<TUNING;
 
-			else
-			{
-				values[i].re = ((int16_t)(coefficients[i+idx_block]>>8)&0x007f)*6;
-				values[N-i-1].re = ((int16_t)(coefficients[i+idx_block]>>8)&0x007f)*6;
-			}
-
-			if((coefficients[i+idx_block] & 0x0080) == 0x0080)
-			{
-				values[i].im = -((int16_t)(coefficients[i+idx_block])&0x007f)*6;
-				values[N-i-1].im = -((int16_t)(coefficients[i+idx_block])&0x7f)*6;
-			}
-			else
-			{
-				values[i].im = (((int16_t)(coefficients[i+idx_block])&0x7f)*6);
-				values[N-i-1].im = (((int16_t)(coefficients[i+idx_block])&0x7f)*6);
-			}
-
+			temp_output[N-sample_idx].re = ((int32_t)((0xff00&coefficients[block_idx + sample_idx])>>8)-128)<<TUNING;
+			temp_output[N-sample_idx].im = -((int32_t)((0x00ff&coefficients[block_idx + sample_idx])-128))<<TUNING;
 		}
-		//execute FFT block of samples
-		ifft(values, EXP, twiddle, 1);
 
-		for (i = 0; i<N; i++)
+
+		ifft(temp_output, EXP, twiddle, 0);
+
+		//scaling the output
+		for(sample_idx = 0; sample_idx < size; sample_idx++)
 		{
-			output[i+(idx_block*2)] = values[i].re;
+			output[block_idx*2 + sample_idx] = 0xffff&(temp_output[sample_idx].re+32768)>>16;
 		}
 	}
+
 	end = clock();
+
 	printf("TIME DECODING: %f\n", (double)(end-start)/CLOCKS_PER_SEC);
 }
 
 
 int main()
 {
-	//int n;
 
-	//printf("aaaa");
-	FILE * stream = fopen("audio.txt", "r");
-	FILE * fp_stream_enc = fopen("fp_encoder.txt", "w+");
-	FILE * fp_stream_dec = fopen("fp_decoder.txt", "w+");
+	drwav wav;
+	drwav wav_out;
 
-	int16_t samples[length];
-	int16_t final[length];
-	uint16_t out[length/2] = {0};
-	//while()
+	drwav_init_file(&wav, "test_audio.wav", NULL);
 
-	for(int i = 0; i<length;i++)
-	{
-		fscanf(stream, "%" SCNd16, &samples[i]);
-	}
+	uint64_t samplesLength = wav.totalPCMFrameCount;
+	uint64_t len = (uint64_t)(ceil((double)samplesLength/64)*64);
+	int16_t* pSampleData = (int16_t*)malloc((size_t)len * wav.channels * sizeof(int16_t));
+	uint16_t* enc_output = (uint16_t*)malloc((size_t)(len/2) * wav.channels * sizeof(uint16_t));
+	int16_t* dec_output = (int16_t*)malloc((size_t)len * wav.channels * sizeof(int16_t));
 
-	encoder(samples, 64, out);
+	drwav_read_pcm_frames_s16(&wav, wav.totalPCMFrameCount, pSampleData);
 
-	for(int i = 0; i<length/2;i++)
-	{
-		fprintf(fp_stream_enc,"%u\n", out[i]);
-	}
+	drwav_uninit(&wav);
 
-	fclose(fp_stream_enc);
+	encoder(pSampleData, N, enc_output, len);
 
-	decoder(out, 64, final);
+	decoder(enc_output, N, dec_output, len);
 
-	for(int i = 0; i<length;i++)
-	{
-		fprintf(fp_stream_dec,"%d\n", final[i]);
-	}
+	drwav_data_format format;
+	format.container = drwav_container_riff;
+	format.format = DR_WAVE_FORMAT_PCM;
+	format.channels = 1;
+	format.sampleRate = 8000;
+	format.bitsPerSample = 16;
 
-	fclose(fp_stream_dec);
+	drwav_init_file_write(&wav_out,"wav_out.wav",&format,NULL);
 
-	fclose(stream);
-
+	drwav_write_pcm_frames(&wav_out,samplesLength,dec_output);
 
 
 	return 0;
