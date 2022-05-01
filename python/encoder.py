@@ -72,24 +72,12 @@ def FFT_64(x):
         else:
             fft_out=np.concatenate((fft_out,bloque_temp[0:32]))
          
-    fft_out = np.around(fft_out/416,0)
-    #fft_hex = [0]*len(fft_out)    
-    #for index in range(0,len(fft_out)):
-    	
-    #	fft_hex[index] = int(tohex(int(np.imag(fft_out)[index]),8),0) + int(tohex(int(np.real(fft_out)[index]),8),0)*256 
-    	#print(fft_hex[index])
-
-    #fft_out=np.around(fft_out)
-    
-#   real=np.asarray((np.real(fft_out))/812+63, dtype = int)
- #  imag=np.asarray((np.imag(fft_out))/812+189, dtype = int)
-  # print(min(real),max(real),len(real))
-#   print(min(imag),max(imag),len(imag))
- #  fft_out=np.real(np.concatenate((real,imag)))
+    fft_out = fft_out/416
     return fft_out
 
 def get_probabilities(content):
     total = len(content) + 1 # Agregamos uno por el caracter FINAL
+    print("content",len(content))
     c = Counter(content)
     res = {}
     for char,count in c.items():
@@ -150,6 +138,7 @@ def store(compressed,dic,outfile):
 
 fft=FFT_64(audio)
 cont=' '.join([str(item) for item in fft])
+
 # Calculamos la distribución de probabilidad para cada símbolo
 probs = get_probabilities(cont)
 # Construimos el árbol de parseo! : )
@@ -157,12 +146,11 @@ tree = make_tree(probs)
 
 # Construimos el diccionario para codificar
 dic = make_dictionary(tree)
-print(dic)
+
 # Codificamos el contenido del archivo
 compressed = compress(dic,cont)
 #print(compressed)
 # Guardamos todo en disco!
-store(compressed,dic,"encoder_prueba")
+store(compressed,dic,"encoder")
 
 print("Archivo comprimido!")
-#print(dic)
